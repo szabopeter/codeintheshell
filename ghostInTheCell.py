@@ -42,6 +42,7 @@ class GhostInTheShell(object):
         self.connection = {}
 
     def connect(self, factid1, factid2, distance):
+        log("Connecting %d-%d"%(factid1, factid2,))
         if factid1 not in self.connection:
             self.connection[factid1] = {}
         if factid2 not in self.connection:
@@ -75,7 +76,11 @@ class GhostInTheShell(object):
             factory.accessibility = accval
 
     def dist(self, f1, f2):
-        return self.connection[f1.fid][f2.fid]
+        if f1.fid in self.connection:
+            if f2.fid in self.connection[f1.fid]:
+                return self.connection[f1.fid][f2.fid]
+        log("Dist=99 because %d and %d are not connected"%(f1.fid, f2.fid,))
+        return 99
 
     def findMeCyborgs(self, target, required):
         sources = []
@@ -136,6 +141,34 @@ class GhostInTheShell(object):
 
         return commands
             
+    def readyToStrike(self, fid, turns_left):
+        target = self.factory[fid]
+        for factory in self.factory.values():
+            if factory.owner != 1: continue
+            dist = self.dist(factory, target)
+            if dist == turns_left:
+                return factory
+        return None
+
+    def bombMaybe(self):
+        hostiles = [ troop for troop in self.troop.values() if troop.owner == -1 ]
+        hostile_garrisons = sum([ factory.cyborgs for factory in self.factory.values() if factory.owner == -1])
+        army_size = sum([troop.cyborgs for troop in hostiles]) + hostile_garrisons
+        hostiles.sort(key = lambda t:-t.cyborgs)
+        for hostile in hostiles:
+            if hostile.cyborgs < army_size * 0.15:
+                continue
+            target = self.factory[hostile.going_to]
+            if target.current_value >= 0:
+                continue
+            source = self.readyToStrike(target.fid, hostile.turns_left)
+            if not source:
+                continue
+            log("Dropping a bomb, because %d approaching hostiles (%d total) and current value of %s."\
+                %(hostile.cyborgs, army_size, target.current_value,))
+            return ["BOMB %d %d"%(source.fid, target.fid,)]
+        return []
+
 
     def dumpFactories(self):
         for f in self.factory.values():
@@ -175,7 +208,9 @@ def codingame():
 
 
         # Any valid action, such as "WAIT" or "MOVE source destination cyborgs"
-        script = ";".join(shell.nextSteps())
+        commands = shell.nextSteps()
+        commands.extend(shell.bombMaybe())
+        script = ";".join(commands)
         print(script)
 
         shell.dumpFactories()
