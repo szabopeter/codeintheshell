@@ -91,27 +91,39 @@ class GhostInTheShell(object):
         all_factories = list(self.factory.values())
         for factory in all_factories:
             factory.score = score(factory)
+
         factories = [ f for f in all_factories if f.score <= 0 and f.production > 0 ]
         if not factories:
             factories = [ f for f in all_factories if f.score <= 0 ]
             if not factories:
-                log("No idea for a target.")
-                return ["WAIT"]
-        factories.sort(key=lambda f:abs(f.score))
-        target = factories[0]
-        log("Chose %s from %s"%(target.fid, ",".join([str(f.fid) for f in factories]), ))
-        required_cyborgs = abs(target.current_value) + 1
-        cyborg_sources = self.findMeCyborgs(target, required_cyborgs)
-        if not cyborg_sources:
-            log("No cyborgs at hand.")
-            return ["WAIT"]
-        
-        source = cyborg_sources[0]
-        if (target.owner != 0):
-            required_cyborgs += self.dist(source, target) * target.production + 1
+                msg = "No idea for a target."
+                log(msg)
+                return ["WAIT; MSG "+msg]
 
-        command = "MOVE %d %d %d"%(source.fid, target.fid, required_cyborgs,)
-        return [command]
+        factories.sort(key=lambda f:abs(f.score))
+        commands = []
+        for target in factories:
+            log("Chose %s from %s"%(target.fid, ",".join([str(f.fid) for f in factories]), ))
+            required_cyborgs = abs(target.current_value) + 1
+            cyborg_sources = self.findMeCyborgs(target, required_cyborgs)
+            if not cyborg_sources:
+                break
+            
+            source = cyborg_sources[0]
+            if (target.owner != 0):
+                required_cyborgs += self.dist(source, target) * target.production + 1
+
+            command = "MOVE %d %d %d"%(source.fid, target.fid, required_cyborgs,)
+            commands.append(command)
+            source.cyborgs = max(source.cyborgs - required_cyborgs, 0)
+
+        if not commands:
+            msg = "No cyborgs at hand."
+            log(msg)
+            return ["WAIT;MSG "+msg]
+
+        return commands
+            
 
     def dumpFactories(self):
         for f in self.factory.values():
@@ -145,8 +157,8 @@ def codingame():
 
 
         # Any valid action, such as "WAIT" or "MOVE source destination cyborgs"
-        for command in shell.nextSteps():
-            print(command)
+        script = ";".join(shell.nextSteps())
+        print(script)
 
         shell.dumpFactories()
 
