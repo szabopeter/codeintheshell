@@ -14,6 +14,7 @@ class Factory(object):
         self.current_value = owner * self.cyborgs
         self.score = None
         self.score_as_source = None
+        self.accessibility = 1.0
 
     def markTarget(self, troop):
         self.current_value += troop.owner * troop.cyborgs
@@ -54,6 +55,12 @@ class GhostInTheShell(object):
         for troop in self.troop.values():
             factory = self.factory[troop.going_to]
             factory.markTarget(troop)
+        for factory in self.factory.values():
+            accval = 0
+            for other in self.factory.values():
+                if factory == other: continue
+                accval += other.owner * other.cyborgs / self.dist(factory, other)
+            factory.accessibility = accval
 
     def dist(self, f1, f2):
         return self.connection[f1.fid][f2.fid]
@@ -69,7 +76,7 @@ class GhostInTheShell(object):
             if ps.cyborgs == 0:
                 continue
             dist = self.dist(ps, target)
-            rate = ps.cyborgs / required
+            rate = (required+dist) / ps.cyborgs
             ps.score_as_source = dist * rate
             sources.append(ps)
 
@@ -79,7 +86,7 @@ class GhostInTheShell(object):
     def nextSteps(self):
         self.completeUpdate()
         def score(factory):
-            return factory.current_value * factory.production
+            return factory.current_value * (factory.production + 0.1) * factory.accessibility
 
         all_factories = list(self.factory.values())
         for factory in all_factories:
@@ -90,8 +97,9 @@ class GhostInTheShell(object):
             if not factories:
                 log("No idea for a target.")
                 return ["WAIT"]
-        factories.sort(key=lambda f:f.score)
+        factories.sort(key=lambda f:abs(f.score))
         target = factories[0]
+        log("Chose %s from %s"%(target.fid, ",".join([str(f.fid) for f in factories]), ))
         required_cyborgs = abs(target.current_value) + 1
         cyborg_sources = self.findMeCyborgs(target, required_cyborgs)
         if not cyborg_sources:
@@ -99,6 +107,9 @@ class GhostInTheShell(object):
             return ["WAIT"]
         
         source = cyborg_sources[0]
+        if (target.owner != 0):
+            required_cyborgs += self.dist(source, target) * target.production + 1
+
         command = "MOVE %d %d %d"%(source.fid, target.fid, required_cyborgs,)
         return [command]
 
