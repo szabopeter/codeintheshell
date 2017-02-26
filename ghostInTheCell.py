@@ -28,6 +28,14 @@ class Troop(object):
         self.turns_left = turns_left
 
 
+class Bomb(object):
+    def __init__(self, bid, owner, coming_from, going_to, turns_left):
+        self.bid = bid
+        self.owner = owner
+        self.coming_from, self.going_to = coming_from, going_to
+        self.turns_left = turns_left
+
+
 class GhostInTheShell(object):
     def __init__(self, factory_count):
         self.factory_count = factory_count
@@ -44,12 +52,16 @@ class GhostInTheShell(object):
     def turn(self):
         self.factory = {}
         self.troop = {}
+        self.bomb = {}
 
-    def updateFactory(self, factory_id, owner, cyborgs, production, unused1, unused2):
+    def updateFactory(self, factory_id, owner, cyborgs, production, _unused1, _unused2):
         self.factory[factory_id] = Factory(factory_id, owner, cyborgs, production)
 
     def updateTroop(self, troop_id, owner, coming_from, going_to, cyborgs, turns_left):
         self.troop[troop_id] = Troop(troop_id, owner, coming_from, going_to, cyborgs, turns_left)
+
+    def updateBomb(self, bomb_id, owner, coming_from, going_to, turns_left, _unused):
+        self.bomb[bomb_id] = Bomb(bomb_id, owner, coming_from, going_to, turns_left)
 
     def completeUpdate(self):
         for troop in self.troop.values():
@@ -152,7 +164,13 @@ def codingame():
             arg_3 = int(arg_3)
             arg_4 = int(arg_4)
             arg_5 = int(arg_5)
-            update = shell.updateFactory if entity_type == "FACTORY" else shell.updateTroop
+            update_methods = \
+                {
+                "FACTORY" : shell.updateFactory,
+                "TROOP" : shell.updateTroop,
+                "BOMB" : shell.updateBomb,
+                }
+            update = update_methods[entity_type]
             update(entity_id, arg_1, arg_2, arg_3, arg_4, arg_5)
 
 
