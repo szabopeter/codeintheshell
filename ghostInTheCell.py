@@ -73,7 +73,7 @@ class GhostInTheShell(object):
             for other in self.factory.values():
                 if factory == other: continue
                 accval += other.owner * other.cyborgs / self.dist(factory, other)
-            factory.accessibility = 2/accval if accval != 0 else 99
+            factory.accessibility = 4/accval if accval != 0 else 999
 
     def dist(self, f1, f2):
         if f1.fid in self.connection:
