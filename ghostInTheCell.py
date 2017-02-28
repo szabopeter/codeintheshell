@@ -5,12 +5,19 @@ def log(msg):
     # Write an action using print
     print(msg, file=sys.stderr)
 
+INFINITY = 999
+BIGTROOP = 15 / 100
+
+US = 1
+THEM = -1
+FREE = 0
 
 class Factory(object):
     def __init__(self, fid, owner, cyborgs, production):
         self.fid = fid
         self.owner, self.cyborgs, self.production = owner, cyborgs, production
-        owner = 1 if owner == 1 else -1
+        #owner = US if owner == US else THEM
+        owner = owner
         self.current_value = owner * self.cyborgs
         self.score = None
         self.score_as_source = None
@@ -73,20 +80,20 @@ class GhostInTheShell(object):
             for other in self.factory.values():
                 if factory == other: continue
                 accval += other.owner * other.cyborgs / self.dist(factory, other)
-            factory.accessibility = 4/accval if accval != 0 else 999
+            factory.accessibility = 4/accval if accval != 0 else INFINITY
 
     def dist(self, f1, f2):
         if f1.fid in self.connection:
             if f2.fid in self.connection[f1.fid]:
                 return self.connection[f1.fid][f2.fid]
-        log("Dist=99 because %d and %d are not connected"%(f1.fid, f2.fid,))
-        return 99
+        log("Dist=%d because %d and %d are not connected"%(INFINITY, f1.fid, f2.fid,))
+        return INFINITY
 
     def findMeCyborgs(self, target, required):
         sources = []
         for possible_source in self.factory.values():
             ps = possible_source
-            if ps.owner != 1:
+            if ps.owner != US:
                 continue
             if ps.fid == target.fid:
                 continue
@@ -144,26 +151,66 @@ class GhostInTheShell(object):
     def readyToStrike(self, fid, turns_left):
         target = self.factory[fid]
         for factory in self.factory.values():
-            if factory.owner != 1: continue
+            if factory.owner != US: continue
             dist = self.dist(factory, target)
             if dist == turns_left:
                 return factory
         return None
 
+    class BombPlan(object):
+        def __init__(self):
+            self.sources = []
+            self.targets = {}
+
+        def registerSource(self, target, source, minturns, maxturns):
+            self.sources.append([target, source, minturns, maxturns])
+
+        def registerTroop(self, fid, turns, cyborgs):
+            for target, source, minturns, maxturns in self.sources:
+                if fid == target and minturns <= turns <= maxturns:
+                    grp = (fid, turns,)
+                    if grp not in self.targets:
+                        self.targets[grp] = [0, fid, turns]
+                    self.targets[grp][0] += cyborgs
+
+        def thePlan(self, army_size):
+            noplan = None, None
+            targets = [ fid, turns, cyborgs for (fid, turns,), cyborgs in self.targets.items() ]
+            targets.sort(key=lambda t:-t.cyborgs)
+            if not targets:
+                return noplan
+            target = targets[0]
+            if target.cyborgs < BIGTROOP:
+                return noplan
+            
+            for ....
+            
+            
     def bombMaybe(self):
-        hostiles = [ troop for troop in self.troop.values() if troop.owner == -1 ]
-        hostile_garrisons = sum([ factory.cyborgs for factory in self.factory.values() if factory.owner == -1])
+        hostiles = [ troop for troop in self.troop.values() if troop.owner == THEM ]
+        hostile_garrisons = sum([ factory.cyborgs for factory in self.factory.values() if factory.owner == THEM])
         army_size = sum([troop.cyborgs for troop in hostiles]) + hostile_garrisons
-        hostiles.sort(key = lambda t:-t.cyborgs)
-        for hostile in hostiles:
-            if hostile.cyborgs < army_size * 0.15:
-                continue
-            target = self.factory[hostile.going_to]
-            if target.current_value >= 0:
-                continue
-            source = self.readyToStrike(target.fid, hostile.turns_left)
-            if not source:
-                continue
+        #calculate bombables: factory, min.turns, max.turns?
+        #calculate targets: factory, turns, cyborgs
+        plan = BombPlan()
+        for target in self.factory:
+            if target.owner != THEM: continue #nofuture
+            #if target.current_value > 0: continue #we're about to conquer it
+            closest, mindist = None, INFINITY
+            for sourceid in self.connection[target.fid].keys():
+                source = self.factory[sourceid]
+                if source.owner != US: continue #nofuture
+                dist = self.connection[factory.fid][sourceid]
+                if dist < mindist:
+                    closest, mindist = source, dist
+            maxturns = INFINITY if source.current_value > 0 else minturns
+            plan.registerSource(target, source, minturns, maxturns)
+
+        for troop in hostiles:
+            plan.registerTroop(troop.going_to, troop.turns_left, troop.cyborgs)
+
+        source, target = plan.thePlan(army_size)
+        if source and target:
             log("Dropping a bomb, because %d approaching hostiles (%d total) and current value of %s."\
                 %(hostile.cyborgs, army_size, target.current_value,))
             return ["BOMB %d %d"%(source.fid, target.fid,)]
