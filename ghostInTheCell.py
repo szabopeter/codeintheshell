@@ -123,7 +123,7 @@ class GhostInTheShell(object):
     def nextSteps(self):
         self.completeUpdate()
         def score(factory):
-            return factory.current_value * (factory.production + 0.1) * factory.accessibility
+            return factory.current_value * (factory.production + 0.1) * 100*factory.accessibility
 
         all_factories = list(self.factory.values())
         for factory in all_factories:
@@ -145,7 +145,7 @@ class GhostInTheShell(object):
             cyborg_sources = self.findMeCyborgs(target, required_cyborgs)
             if not cyborg_sources:
                 log("Can't mobilize any cyborgs for %d"%(target.fid,))
-                break
+                continue
             
             source = cyborg_sources[0]
             if (target.owner != 0):
@@ -153,7 +153,7 @@ class GhostInTheShell(object):
                 log("Dispatching %d+%d cyborgs from %s (has %d) to %d"%(required_cyborgs, extra_cyborgs, source.fid, source.cyborgs, target.fid,))
                 required_cyborgs += extra_cyborgs
             else:
-                required_cyborgs = max(1, required_cyborgs)
+                required_cyborgs += 1
                 log("Dispatching %d cyborgs from %s (has %d) to neutral %d"%(required_cyborgs, source.fid, source.cyborgs, target.fid,))
 
             command = "MOVE %d %d %d"%(source.fid, target.fid, required_cyborgs,)
@@ -198,7 +198,7 @@ class GhostInTheShell(object):
         hostiles = [ troop for troop in self.troop.values() if troop.owner == -1 ]
         hostile_garrisons = sum([ factory.cyborgs for factory in self.factory.values() if factory.owner == -1])
         army_size = sum([troop.cyborgs for troop in hostiles]) + hostile_garrisons
-        hostiles.sort(key = lambda t:-t.cyborgs)
+        hostiles.sort(key = lambda t:-t.cyborgs -5*self.factory[t.going_to].production)
         for hostile in hostiles:
             if hostile.cyborgs < army_size * 0.15:
                 continue
