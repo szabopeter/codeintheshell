@@ -39,6 +39,9 @@ class GhostInTheShell(object):
     def __init__(self, factory_count):
         self.factory_count = factory_count
         self.connection = {}
+        self.bombwatch = []
+        self.evacuation_plan = {}
+        self.turn = 0
 
     def connect(self, factid1, factid2, distance):
         log("Connecting %d-%d"%(factid1, factid2,))
@@ -49,10 +52,12 @@ class GhostInTheShell(object):
         self.connection[factid1][factid2] = distance
         self.connection[factid2][factid1] = distance
 
-    def turn(self):
+    def new_turn(self):
         self.factory = {}
         self.troop = {}
         self.bomb = {}
+        self.turn += 1
+        log("Starting turn %d"%(self.turn,))
 
     def updateFactory(self, factory_id, owner, cyborgs, production, _unused1, _unused2):
         self.factory[factory_id] = Factory(factory_id, owner, cyborgs, production)
@@ -61,7 +66,21 @@ class GhostInTheShell(object):
         self.troop[troop_id] = Troop(troop_id, owner, coming_from, going_to, cyborgs, turns_left)
 
     def updateBomb(self, bomb_id, owner, coming_from, going_to, turns_left, _unused):
+        #TODO: removal from bombwatch after explosion!
         self.bomb[bomb_id] = Bomb(bomb_id, owner, coming_from, going_to, turns_left)
+        if owner == -1 and bomb_id not in self.bombwatch:
+            self.bombwatch.append(bomb_id)
+            log("They launched a bomb from %d in turn %d"%(coming_from, self.turn,))
+            log("Here is the evacuation plan:")
+            self.makeEvacuationPlan(coming_from)
+
+    def makeEvacuationPlan(self, origin):
+        for possible_target in self.factory.values():
+            impact_turn = self.turn + self.dist(origin, possible_target) - 2
+            if impact_turn not in self.evacuation_plan:
+                self.evacuation_plan[impact_turn] = []
+            self.evacuation_plan[impact_turn].append(possible_target)
+            log("Evacuate %d in turn #%d"%(possible_target.fid, impact_turn,))
 
     def completeUpdate(self):
         for troop in self.troop.values():
@@ -76,10 +95,12 @@ class GhostInTheShell(object):
             
 
     def dist(self, f1, f2):
-        if f1.fid in self.connection:
-            if f2.fid in self.connection[f1.fid]:
-                return self.connection[f1.fid][f2.fid]
-        log("Dist=99 because %d and %d are not connected"%(f1.fid, f2.fid,))
+        fid1 = f1 if type(f1)==type(1) else f1.fid
+        fid2 = f2 if type(f2)==type(1) else f2.fid
+        if fid1 in self.connection:
+            if fid2 in self.connection[fid1]:
+                return self.connection[fid1][fid2]
+        log("Dist=99 because %d and %d are not connected"%(fid1, fid2,))
         return 99
 
     def findMeCyborgs(self, target, required):
@@ -124,18 +145,35 @@ class GhostInTheShell(object):
             required_cyborgs = abs(target.current_value)
             cyborg_sources = self.findMeCyborgs(target, required_cyborgs)
             if not cyborg_sources:
+                log("Can't mobilize any cyborgs for %d"%(target.fid,))
                 break
             
             source = cyborg_sources[0]
             if (target.owner != 0):
                 extra_cyborgs = (self.dist(source, target)+1) * target.production + 1
-                log("Dispatching %d+%d cyborgs from %s (has %d)"%(required_cyborgs, extra_cyborgs, source.fid, source.cyborgs,))
+                log("Dispatching %d+%d cyborgs from %s (has %d) to %d"%(required_cyborgs, extra_cyborgs, source.fid, source.cyborgs, target.fid,))
                 required_cyborgs += extra_cyborgs
+            else:
+                required_cyborgs = max(1, required_cyborgs)
+                log("Dispatching %d cyborgs from %s (has %d) to neutral %d"%(required_cyborgs, source.fid, source.cyborgs, target.fid,))
 
             command = "MOVE %d %d %d"%(source.fid, target.fid, required_cyborgs,)
             commands.append(command)
             source.cyborgs = max(source.cyborgs - required_cyborgs, 0)
 
+        if self.turn in self.evacuation_plan:
+            for panicking in self.evacuation_plan[self.turn]:
+                if panicking.owner != 1: continue
+                commands.append("MSG RUN, YOU FOOLS! All %d of you at %d!"%(panicking.cyborgs, panicking.fid,))
+                while panicking.cyborgs > 0:
+                    for anywhere in self.factory.values():
+                        if anywhere == panicking: continue
+                        commands.append("MOVE %d %d 1"%(panicking.fid, anywhere.fid,))
+                        panicking.cyborgs -= 1
+                        if panicking.cyborgs == 0:
+                            break
+            del self.evacuation_plan[self.turn]
+                    
         if not commands:
             msg = "No cyborgs at hand."
             log(msg)
@@ -189,7 +227,7 @@ def codingame():
 
     # game loop
     while True:
-        shell.turn()
+        shell.new_turn()
         entity_count = int(input())  # the number of entities (e.g. factories and troops)
         for i in range(entity_count):
             entity_id, entity_type, arg_1, arg_2, arg_3, arg_4, arg_5 = input().split()
