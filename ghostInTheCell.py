@@ -167,7 +167,7 @@ class GhostInTheShell(object):
                 commands.append("MSG RUN, YOU FOOLS! All %d of you at %d!"%(panicking.cyborgs, panicking.fid,))
                 while panicking.cyborgs > 0:
                     for anywhere in self.factory.values():
-                        if anywhere == panicking: continue
+                        if anywhere.fid == panicking.fid: continue
                         commands.append("MOVE %d %d 1"%(panicking.fid, anywhere.fid,))
                         panicking.cyborgs -= 1
                         if panicking.cyborgs == 0:
