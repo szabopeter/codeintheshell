@@ -43,10 +43,53 @@ class Bomb(object):
         self.turns_left = turns_left
 
 
+class BombPlan(object):
+    def __init__(self, bombs_left):
+        self.sources = []
+        self.targets = {}
+
+    def registerSource(self, target, source, minturns, maxturns):
+        self.sources.append([target, source, minturns, maxturns])
+
+    def registerTroop(self, going_to_fid, turns, cyborgs):
+        for index, (target, source, minturns, maxturns,) in enumerate(self.sources):
+            if going_to_fid == target.fid and minturns <= turns <= maxturns:
+                grp = (going_to_fid, turns,)
+                if grp not in self.targets:
+                    self.targets[grp] = [ 0, minturns, maxturns, []]
+                self.targets[grp] += cyborgs
+                self.targets[grp][1] = min(self.targets[grp][1], minturns)
+                self.targets[grp][2] = min(self.targets[grp][2], maxturns)
+                self.targets[grp][3].append(index)
+
+    def thePlan(self, army_size):
+        noplan = None, None
+        targets = [ (cyborgs, fid, turns, minturns, maxturns, source_indices, ) \
+            for (fid, turns,), (cyborgs, minturns, maxturns, source_indices, ) in self.targets.items() ]
+        targets.sort(key=lambda t:-t[0] * 100 + t[2])
+        if not targets:
+            return noplan
+        (cyborgs, fid, turns, agg_minturns, agg_maxturns, source_indices) = targets[0]
+        if cyborgs < BIGTROOP*army_size:
+            return noplan
+
+        if agg_minturns < turns < agg_maxturns:
+            log("Ej, ráérünk arra még!")
+
+        for source_index in source_indices:
+            (target, source, minturns, maxturns, ) = self.sources[source_index]
+            if turns == minturns:
+                return source, target
+
+        log("Jobbára ártalmatlan.")
+        return noplan
+        
+
 class GhostInTheShell(object):
     def __init__(self, factory_count):
         self.factory_count = factory_count
         self.connection = {}
+        self.bombs_left = 2
 
     def connect(self, factid1, factid2, distance):
         log("Connecting %d-%d"%(factid1, factid2,))
@@ -157,42 +200,13 @@ class GhostInTheShell(object):
                 return factory
         return None
 
-    class BombPlan(object):
-        def __init__(self):
-            self.sources = []
-            self.targets = {}
-
-        def registerSource(self, target, source, minturns, maxturns):
-            self.sources.append([target, source, minturns, maxturns])
-
-        def registerTroop(self, fid, turns, cyborgs):
-            for target, source, minturns, maxturns in self.sources:
-                if fid == target and minturns <= turns <= maxturns:
-                    grp = (fid, turns,)
-                    if grp not in self.targets:
-                        self.targets[grp] = [0, fid, turns]
-                    self.targets[grp][0] += cyborgs
-
-        def thePlan(self, army_size):
-            noplan = None, None
-            targets = [ fid, turns, cyborgs for (fid, turns,), cyborgs in self.targets.items() ]
-            targets.sort(key=lambda t:-t.cyborgs)
-            if not targets:
-                return noplan
-            target = targets[0]
-            if target.cyborgs < BIGTROOP:
-                return noplan
-            
-            for ....
-            
-            
     def bombMaybe(self):
         hostiles = [ troop for troop in self.troop.values() if troop.owner == THEM ]
         hostile_garrisons = sum([ factory.cyborgs for factory in self.factory.values() if factory.owner == THEM])
         army_size = sum([troop.cyborgs for troop in hostiles]) + hostile_garrisons
         #calculate bombables: factory, min.turns, max.turns?
         #calculate targets: factory, turns, cyborgs
-        plan = BombPlan()
+        plan = BombPlan(self.bombs_left)
         for target in self.factory:
             if target.owner != THEM: continue #nofuture
             #if target.current_value > 0: continue #we're about to conquer it
