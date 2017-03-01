@@ -66,20 +66,19 @@ class GhostInTheShell(object):
         self.troop[troop_id] = Troop(troop_id, owner, coming_from, going_to, cyborgs, turns_left)
 
     def updateBomb(self, bomb_id, owner, coming_from, going_to, turns_left, _unused):
-        #TODO: removal from bombwatch after explosion!
         self.bomb[bomb_id] = Bomb(bomb_id, owner, coming_from, going_to, turns_left)
         if owner == -1 and bomb_id not in self.bombwatch:
-            self.bombwatch.append(bomb_id)
+            #self.bombwatch.append(bomb_id)
             log("They launched a bomb from %d in turn %d"%(coming_from, self.turn,))
             log("Here is the evacuation plan:")
-            self.makeEvacuationPlan(coming_from)
+            self.makeEvacuationPlan(coming_from)        
 
     def makeEvacuationPlan(self, origin):
         for possible_target in self.factory.values():
             impact_turn = self.turn + self.dist(origin, possible_target) - 2
             if impact_turn not in self.evacuation_plan:
                 self.evacuation_plan[impact_turn] = []
-            self.evacuation_plan[impact_turn].append(possible_target)
+            self.evacuation_plan[impact_turn].append(possible_target.fid)
             log("Evacuate %d in turn #%d"%(possible_target.fid, impact_turn,))
 
     def completeUpdate(self):
@@ -92,7 +91,7 @@ class GhostInTheShell(object):
                 if factory == other: continue
                 accval += other.owner * other.cyborgs / self.dist(factory, other)
             factory.accessibility = 4/accval if accval != 0 else 99
-            
+        self.bombwatch = self.bomb.keys()
 
     def dist(self, f1, f2):
         fid1 = f1 if type(f1)==type(1) else f1.fid
@@ -131,15 +130,15 @@ class GhostInTheShell(object):
             factory.score = score(factory)
 
         factories = [ f for f in all_factories if f.score <= 0 and f.production > 0 ]
+        commands = []
         if not factories:
             factories = [ f for f in all_factories if f.score <= 0 ]
             if not factories:
                 msg = "No idea for a target."
                 log(msg)
-                return ["WAIT; MSG "+msg]
+                commands.extend(["WAIT; MSG "+msg])
 
         factories.sort(key=lambda f:abs(f.score))
-        commands = []
         for target in factories:
             log("Chose %s from %s"%(target.fid, ",".join([str(f.fid) for f in factories]), ))
             required_cyborgs = abs(target.current_value)
@@ -162,9 +161,14 @@ class GhostInTheShell(object):
             source.cyborgs = max(source.cyborgs - required_cyborgs, 0)
 
         if self.turn in self.evacuation_plan:
-            for panicking in self.evacuation_plan[self.turn]:
+            for panicking_fid in self.evacuation_plan[self.turn]:
+                panicking = self.factory[panicking_fid]
                 if panicking.owner != 1: continue
-                commands.append("MSG RUN, YOU FOOLS! All %d of you at %d!"%(panicking.cyborgs, panicking.fid,))
+                msg = "MSG RUN, YOU FOOLS! All %d of you at %d!"%(panicking.cyborgs, panicking.fid,)
+                commands.append(msg)
+                log(msg)
+                fact = self.factory[panicking.fid]
+                log("WTF: %d =?= %d"%(fact.cyborgs, panicking.cyborgs,))
                 while panicking.cyborgs > 0:
                     for anywhere in self.factory.values():
                         if anywhere.fid == panicking.fid: continue
