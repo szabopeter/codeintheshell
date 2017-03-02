@@ -1,9 +1,15 @@
 import sys
 import math
 
-def log(msg):
-    # Write an action using print
-    print(msg, file=sys.stderr)
+def log(arg1, arg2=None):
+    if arg2 is None:
+        msg = arg1
+        print(msg, file=sys.stderr)
+    else:
+        flag, msg = arg1, arg2
+        log(msg)
+
+LOG_BOMBPLAN = True
 
 INFINITY = 999
 BIGTROOP = 15 / 100
@@ -26,6 +32,11 @@ class Factory(object):
     def markTarget(self, troop):
         self.current_value += troop.owner * troop.cyborgs
 
+    def __str__(self):
+        return "F%02d"%(self.fid,)
+
+    def __repr__(self):
+        return str(self)
 
 class Troop(object):
     def __init__(self, tid, owner, coming_from, going_to, cyborgs, turns_left):
@@ -49,18 +60,25 @@ class BombPlan(object):
         self.targets = {}
 
     def registerSource(self, target, source, minturns, maxturns):
-        self.sources.append([target, source, minturns, maxturns])
+        new_source = [target, source, minturns, maxturns]
+        self.sources.append(new_source)
+        log(LOG_BOMBPLAN, "Registered source (target, source, minturns, maxturns) = %s"%new_source)
 
     def registerTroop(self, going_to_fid, turns, cyborgs):
+        log(LOG_BOMBPLAN, "Registering troop of %d arriving at %d in %d turns"% \
+            (cyborgs, going_to_fid, turns, ))
         for index, (target, source, minturns, maxturns,) in enumerate(self.sources):
+            log(LOG_BOMBPLAN, "Considering %s-%s (%d<=%d<=%d)"% \
+                (source, target, minturns, turns, maxturns,))
             if going_to_fid == target.fid and minturns <= turns <= maxturns:
                 grp = (going_to_fid, turns,)
                 if grp not in self.targets:
                     self.targets[grp] = [ 0, minturns, maxturns, []]
-                self.targets[grp] += cyborgs
+                self.targets[grp][0] += cyborgs
                 self.targets[grp][1] = min(self.targets[grp][1], minturns)
                 self.targets[grp][2] = min(self.targets[grp][2], maxturns)
                 self.targets[grp][3].append(index)
+                log(LOG_BOMBPLAN, "Updated target list: (target, turns) = %s, (cyborgs, minturns, maxturns, sources) = %s"%(grp, self.targets[grp],))
 
     def thePlan(self, army_size):
         noplan = None, None

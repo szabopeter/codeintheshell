@@ -25,7 +25,7 @@ class BombPlanTestCase(unittest.TestCase):
         ef1 = Factory(1, THEM, 0, uniprod)
         ef2 = Factory(2, THEM, 0, uniprod)
         plan.registerSource(ef1, my_factory, 1, 99)
-        plan.registerSource(ef2, my_factory, 2, 99)
+        plan.registerSource(ef2, my_factory, 1, 99)
         army = Troop(100, THEM, ef1.fid, ef2.fid, 10, 1)
         plan.registerTroop(army.going_to, army.turns_left, army.cyborgs)
 
