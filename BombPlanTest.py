@@ -18,24 +18,43 @@ def next_id():
 
 
 class BombPlanTestCase(unittest.TestCase):
-    def testThePlan_singleBigTroopTowardsNeutral(self):
+    def calcBigArmyLimit(self, *args):
+        total_troop_size = sum(args)
+        return int(total_troop_size / (1 / BIGTROOP - 1))
+
+    def testThePlan_bombSingleBigTroopTowardsNeutral(self):
         plan = BombPlan(2)
         uniprod = 0
+        ef1_garrison, ef2_garrison, = 0, 0
+        marching = self.calcBigArmyLimit(ef1_garrison, ef2_garrison) + 1
         my_factory = Factory(0, US, 0, uniprod)
-        ef1 = Factory(1, THEM, 0, uniprod)
-        ef2 = Factory(2, THEM, 0, uniprod)
+        ef1 = Factory(1, THEM, ef1_garrison, uniprod)
+        ef2 = Factory(2, THEM, ef2_garrison, uniprod)
         plan.registerSource(ef1, my_factory, 1, 99)
         plan.registerSource(ef2, my_factory, 1, 99)
-        army = Troop(100, THEM, ef1.fid, ef2.fid, 10, 1)
+        army = Troop(100, THEM, ef1.fid, ef2.fid, marching, 1)
         plan.registerTroop(army.going_to, army.turns_left, army.cyborgs)
-
-        source, target = plan.thePlan(10+2)
+        source, target = plan.thePlan(ef1_garrison + ef2_garrison + marching)
         self.assertIsNotNone(source)
         self.assertIsNotNone(target)
         self.assertEqual(source, my_factory)
         self.assertEqual(target, ef2)
 
-
+    def testThePlan_ignoreSingleSmallTroop(self):
+        plan = BombPlan(2)
+        uniprod = 0
+        ef1_garrison, ef2_garrison, = 0, 0
+        marching = self.calcBigArmyLimit(ef1_garrison, ef2_garrison) - 1
+        my_factory = Factory(0, US, 0, uniprod)
+        ef1 = Factory(1, THEM, ef1_garrison, uniprod)
+        ef2 = Factory(2, THEM, ef2_garrison, uniprod)
+        plan.registerSource(ef1, my_factory, 1, 99)
+        plan.registerSource(ef2, my_factory, 1, 99)
+        army = Troop(100, THEM, ef1.fid, ef2.fid, marching, 1)
+        plan.registerTroop(army.going_to, army.turns_left, army.cyborgs)
+        source, target = plan.thePlan(ef1_garrison + ef2_garrison + marching)
+        self.assertIsNone(source)
+        self.assertIsNone(target)
 
 if __name__ == '__main__':
     unittest.main()
