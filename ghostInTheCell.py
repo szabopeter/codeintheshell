@@ -7,9 +7,10 @@ def log(arg1, arg2=None):
         print(msg, file=sys.stderr)
     else:
         flag, msg = arg1, arg2
-        log(msg)
+        if flag: 
+            log(msg)
 
-LOG_BOMBPLAN = True
+LOG_BOMBPLAN = False
 
 INFINITY = 999
 BIGTROOP = 15 / 100

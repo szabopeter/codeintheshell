@@ -32,8 +32,8 @@ class BombPlanTestCase(unittest.TestCase):
         ef2 = Factory(2, THEM, ef2_garrison, uniprod)
         plan.registerSource(ef1, my_factory, 1, 99)
         plan.registerSource(ef2, my_factory, 1, 99)
-        army = Troop(100, THEM, ef1.fid, ef2.fid, marching, 1)
-        plan.registerTroop(army.going_to, army.turns_left, army.cyborgs)
+        army_to, army_turns, army_size = ef2.fid, 1, marching
+        plan.registerTroop(army_to, army_turns, army_size)
         source, target = plan.thePlan(ef1_garrison + ef2_garrison + marching)
         self.assertIsNotNone(source)
         self.assertIsNotNone(target)
@@ -50,8 +50,8 @@ class BombPlanTestCase(unittest.TestCase):
         ef2 = Factory(2, THEM, ef2_garrison, uniprod)
         plan.registerSource(ef1, my_factory, 1, 99)
         plan.registerSource(ef2, my_factory, 1, 99)
-        army = Troop(100, THEM, ef1.fid, ef2.fid, marching, 1)
-        plan.registerTroop(army.going_to, army.turns_left, army.cyborgs)
+        army_to, army_turns, army_size = ef2.fid, 1, marching
+        plan.registerTroop(army_to, army_turns, army_size)
         source, target = plan.thePlan(ef1_garrison + ef2_garrison + marching)
         self.assertIsNone(source)
         self.assertIsNone(target)
