@@ -90,7 +90,7 @@ class GhostInTheShell(object):
             for other in self.factory.values():
                 if factory == other: continue
                 accval += other.owner * other.cyborgs / self.dist(factory, other)
-            factory.accessibility = 4/accval if accval != 0 else 99
+            factory.accessibility = 1/accval if accval != 0 else 99
         self.bombwatch = self.bomb.keys()
 
     def dist(self, f1, f2):
@@ -123,7 +123,7 @@ class GhostInTheShell(object):
     def nextSteps(self):
         self.completeUpdate()
         def score(factory):
-            return factory.current_value * (factory.production + 0.1) * 100*factory.accessibility
+            return factory.current_value+10*(factory.production+1) + 50*factory.accessibility
 
         all_factories = list(self.factory.values())
         for factory in all_factories:

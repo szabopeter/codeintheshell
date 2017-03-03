@@ -29,5 +29,8 @@ Improve/fix evacuation (Submission 2017-03-01 22:25:11)
 => 742/1541
 
 Consider production when choosing bomb targets, send more cyborgs to neutral factories (Submission 2017-03-01 22:52:20)
-= 751/1541
+=> 751/1541
+
+Experiment with weights (Submission 2017-03-01 23:32:08)
+=> 1500/1541
 
