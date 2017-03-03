@@ -158,7 +158,7 @@ class GhostInTheShell(object):
             for other in self.factory.values():
                 if factory == other: continue
                 accval += other.owner * other.cyborgs / self.dist(factory, other)
-            factory.accessibility = 1/accval if accval != 0 else INFINITY
+            factory.accessibility = 4/accval if accval != 0 else INFINITY
         self.bombwatch = self.bomb.keys()
 
     def dist(self, f1, f2):
@@ -167,7 +167,7 @@ class GhostInTheShell(object):
         if fid1 in self.connection:
             if fid2 in self.connection[fid1]:
                 return self.connection[fid1][fid2]
-        log("Dist=%d because %d and %d are not connected"%(INFINITY, f1.fid, f2.fid,))
+        log("Dist=%d because %d and %d are not connected"%(INFINITY, fid1, fid2,))
         return INFINITY
 
     def findMeCyborgs(self, target, required):
@@ -191,7 +191,7 @@ class GhostInTheShell(object):
     def nextSteps(self):
         self.completeUpdate()
         def score(factory):
-            return factory.current_value+10*(factory.production+1) + 50*factory.accessibility
+            return factory.current_value * (factory.production + 0.1) * 100*factory.accessibility
 
         all_factories = list(self.factory.values())
         for factory in all_factories:
@@ -269,15 +269,15 @@ class GhostInTheShell(object):
         #calculate bombables: factory, min.turns, max.turns?
         #calculate targets: factory, turns, cyborgs
         plan = BombPlan(self.bombs_left)
-        for target in self.factory:
+        for target in self.factory.values():
             if target.owner != THEM: continue #nofuture
             #if target.current_value > 0: continue #we're about to conquer it
-            closest, mindist = None, INFINITY
+            closest, minturns = None, INFINITY
             for sourceid in self.connection[target.fid].keys():
                 source = self.factory[sourceid]
                 if source.owner != US: continue #nofuture
-                dist = self.connection[factory.fid][sourceid]
-                if dist < mindist:
+                dist = self.connection[target.fid][sourceid]
+                if dist < minturns:
                     closest, mindist = source, dist
             maxturns = INFINITY if source.current_value > 0 else minturns
             plan.registerSource(target, source, minturns, maxturns)
