@@ -16,3 +16,18 @@ factory.accessibility = accval
 factory.accessibility = 4/accval if accval != 0 else 99
 => 500/1500
 
+Send a few more cyborgs. (Submission 2017-02-28 22:05:11)
+=> 1400/1400+epsilon
+
+Implement evacuation (C) TZ; Tune army size for attacking (Submission 2017-03-01 09:58:55)
+=> 1060/1485
+
+Prevent running in panic towards the base were trying to leave (Submission 2017-03-01 12:44:52)
+=> 871/1504
+
+Improve/fix evacuation (Submission 2017-03-01 22:25:11)
+=> 742/1541
+
+Consider production when choosing bomb targets, send more cyborgs to neutral factories (Submission 2017-03-01 22:52:20)
+= 751/1541
+
