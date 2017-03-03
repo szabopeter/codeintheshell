@@ -23,9 +23,7 @@ class Factory(object):
     def __init__(self, fid, owner, cyborgs, production):
         self.fid = fid
         self.owner, self.cyborgs, self.production = owner, cyborgs, production
-        #owner = US if owner == US else THEM
-        owner = owner
-        self.current_value = owner * self.cyborgs
+        self.current_value = cyborgs if owner == US else -cyborgs
         self.score = None
         self.score_as_source = None
         self.accessibility = 1.0
@@ -162,7 +160,7 @@ class GhostInTheShell(object):
             if ps.cyborgs == 0:
                 continue
             dist = self.dist(ps, target)
-            rate = (required+dist) / ps.cyborgs
+            rate = (required+dist*target.production*(-target.owner)) / ps.cyborgs
             ps.score_as_source = dist * rate
             sources.append(ps)
 
@@ -190,14 +188,16 @@ class GhostInTheShell(object):
         commands = []
         for target in factories:
             log("Chose %s from %s"%(target.fid, ",".join([str(f.fid) for f in factories]), ))
-            required_cyborgs = abs(target.current_value) + 1
+            required_cyborgs = abs(target.current_value)
             cyborg_sources = self.findMeCyborgs(target, required_cyborgs)
             if not cyborg_sources:
                 break
             
             source = cyborg_sources[0]
             if (target.owner != 0):
-                required_cyborgs += self.dist(source, target) * target.production + 1
+                extra_cyborgs = (self.dist(source, target)+1) * target.production + 1
+                log("Dispatching %d+%d cyborgs from %s (has %d)"%(required_cyborgs, extra_cyborgs, source.fid, source.cyborgs,))
+                required_cyborgs += extra_cyborgs
 
             command = "MOVE %d %d %d"%(source.fid, target.fid, required_cyborgs,)
             commands.append(command)
