@@ -35,4 +35,4 @@ Experiment with weights (Submission 2017-03-01 23:32:08)
 => 1500/1541
 
 Expect-troops: fix wrong variable names (Submission 2017-03-03 17:30:34)
-=> ?
+=> 779/1440
